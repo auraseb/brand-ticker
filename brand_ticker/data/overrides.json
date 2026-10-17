@@ -1,0 +1,13 @@
+{
+ "_doc": "hand tuned keying per org login (lowercase). mode: diff, alpha, inner, dark, white, solid. ramp: mask ramp [from, to]. crop: [x0, y0, x1, y1] fractions of the avatar to read. close: morphological close in px. scale: optical nudge after fitting. skip: never show.",
+ "bloomberg": {"mode": "dark"},
+ "teslamotors": {"mode": "white"},
+ "swiftlang": {"mode": "white"},
+ "open-meteo": {"mode": "white", "ramp": [205, 245], "crop": [0, 0.1, 1, 0.72], "scale": 1.3},
+ "nasa": {"mode": "solid", "close": 3},
+ "tailwindlabs": {"mode": "alpha"},
+ "oven-sh": {"ramp": [110, 190]},
+ "owid": {"crop": [0, 0, 1, 0.86]},
+ "boavizta": {"scale": 1.15},
+ "neuralink": {"scale": 1.08}
+}

@@ -1,0 +1,107 @@
+name: brand ticker
+description: your contribution count edge to edge, over a slow line of the logos of every org you ship to. pure svg.
+author: auraseb
+branding:
+  icon: activity
+  color: gray-dark
+
+inputs:
+  user:
+    description: github login to draw
+    default: ${{ github.repository_owner }}
+  mode:
+    description: prs_and_issues, or merged_prs to count only what landed
+    default: prs_and_issues
+  min_stars:
+    description: only count repos with at least this many stars
+    default: "100"
+  exclude_orgs:
+    description: org logins to leave out, comma separated
+    default: ""
+  first:
+    description: org logins to lead the strip, comma separated
+    default: ""
+  max_logos:
+    description: the strip stops at this many logos
+    default: "30"
+  light_ink:
+    description: the one colour in light mode
+    default: "#191A1C"
+  dark_ink:
+    description: the one colour in dark mode
+    default: "#F0F3F6"
+  light_bg:
+    description: ground in light mode, none for see through
+    default: none
+  dark_bg:
+    description: ground in dark mode, none for see through
+    default: none
+  output_dir:
+    description: where light.svg and dark.svg go
+    default: ticker
+  commit:
+    description: commit and push the svgs when they change
+    default: "true"
+  commit_message:
+    description: message for that commit
+    default: "ticker: refresh"
+  token:
+    description: reads public search results and org avatars
+    default: ${{ github.token }}
+
+outputs:
+  contributions:
+    description: the number
+    value: ${{ steps.build.outputs.contributions }}
+  orgs:
+    description: the orgs shown, in order, comma separated
+    value: ${{ steps.build.outputs.orgs }}
+
+runs:
+  using: composite
+  steps:
+    - name: pillow
+      shell: bash
+      run: |
+        python3 -m venv "$RUNNER_TEMP/brand-ticker"
+        "$RUNNER_TEMP/brand-ticker/bin/pip" install --quiet --disable-pip-version-check "pillow>=10,<13"
+
+    - name: build
+      id: build
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
+        GH_TOKEN: ${{ inputs.token }}
+        BT_USER: ${{ inputs.user }}
+        BT_MODE: ${{ inputs.mode }}
+        BT_MIN_STARS: ${{ inputs.min_stars }}
+        BT_EXCLUDE: ${{ inputs.exclude_orgs }}
+        BT_FIRST: ${{ inputs.first }}
+        BT_MAX: ${{ inputs.max_logos }}
+        BT_LIGHT_INK: ${{ inputs.light_ink }}
+        BT_DARK_INK: ${{ inputs.dark_ink }}
+        BT_LIGHT_BG: ${{ inputs.light_bg }}
+        BT_DARK_BG: ${{ inputs.dark_bg }}
+        BT_OUT: ${{ inputs.output_dir }}
+      run: |
+        "$RUNNER_TEMP/brand-ticker/bin/python" -m brand_ticker \
+          --user "$BT_USER" --mode "$BT_MODE" --min-stars "$BT_MIN_STARS" \
+          --exclude "$BT_EXCLUDE" --first "$BT_FIRST" --max-logos "$BT_MAX" \
+          --light-ink "$BT_LIGHT_INK" --dark-ink "$BT_DARK_INK" \
+          --light-bg "$BT_LIGHT_BG" --dark-bg "$BT_DARK_BG" --out "$BT_OUT"
+
+    - name: commit
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        BT_OUT: ${{ inputs.output_dir }}
+        BT_MSG: ${{ inputs.commit_message }}
+      run: |
+        git add "$BT_OUT/light.svg" "$BT_OUT/dark.svg"
+        if git diff --cached --quiet; then
+          echo "ticker unchanged"
+          exit 0
+        fi
+        git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+          commit --quiet -m "$BT_MSG"
+        git push --quiet || { git pull --rebase --quiet && git push --quiet; }
