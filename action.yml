@@ -36,6 +36,9 @@ inputs:
   dark_bg:
     description: ground in dark mode, none for see through
     default: none
+  badge_merged:
+    description: put github's merge glyph beside the logo of every org where one of your PRs was merged
+    default: "true"
   output_dir:
     description: where light.svg and dark.svg go
     default: ticker
@@ -83,8 +86,9 @@ runs:
         BT_LIGHT_BG: ${{ inputs.light_bg }}
         BT_DARK_BG: ${{ inputs.dark_bg }}
         BT_OUT: ${{ inputs.output_dir }}
+        BT_BADGE: ${{ inputs.badge_merged }}
       run: |
-        "$RUNNER_TEMP/brand-ticker/bin/python" -m brand_ticker \
+        "$RUNNER_TEMP/brand-ticker/bin/python" -m brand_ticker --badge-merged "$BT_BADGE" \
           --user "$BT_USER" --mode "$BT_MODE" --min-stars "$BT_MIN_STARS" \
           --exclude "$BT_EXCLUDE" --first "$BT_FIRST" --max-logos "$BT_MAX" \
           --light-ink "$BT_LIGHT_INK" --dark-ink "$BT_DARK_INK" \

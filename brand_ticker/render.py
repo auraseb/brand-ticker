@@ -22,6 +22,13 @@ MARK_GAP = 68      # equal white space between marks
 BOTTOM = 8
 SPEED = 24         # px per second
 FADE = 96          # the strip fades out over this many px at both ends
+BADGE = 18         # the merged mark (GitHub's git merge glyph) beside a logo whose PR landed
+# Octicons git-merge-24, MIT licensed, https://github.com/primer/octicons
+MERGE_PATH = ("M15 13.25a3.25 3.25 0 1 1 6.5 0 3.25 3.25 0 0 1-6.5 0Zm-12.5 6a3.25 3.25 0 1 1 6.5 0 3.25 3.25 0 0 1-6.5 0Zm0-14.5"
+              "a3.25 3.25 0 1 1 6.5 0 3.25 3.25 0 0 1-6.5 0ZM5.75 6.5a1.75 1.75 0 1 0-.001-3.501A1.75 1.75 0 0 0 5.75 6.5Zm0 14.5"
+              "a1.75 1.75 0 1 0-.001-3.501A1.75 1.75 0 0 0 5.75 21Zm12.5-6a1.75 1.75 0 1 0-.001-3.501A1.75 1.75 0 0 0 18.25 15Z"
+              "M6.5 7.25c0 2.9 2.35 5.25 5.25 5.25h4.5V14h-4.5A6.75 6.75 0 0 1 5 7.25Z"
+              "M5.75 16.75A.75.75 0 0 1 5 16V8a.75.75 0 0 1 1.5 0v8a.75.75 0 0 1-.75.75Z")
 
 DEFAULT_THEMES = {
     "light": {"ink": "#191A1C", "bg": "none"},
@@ -85,7 +92,7 @@ def _mark_def(i, mark, ink, mw, mh):
     return f'<g id="m{i}"><image href="{png_uri(mark.mask, ink, mw, mh)}" width="{mw:.2f}" height="{mh:.2f}"/></g>'
 
 
-def svg(count, marks, ink, bg="none", width=W, label="contributions in the last year"):
+def svg(count, marks, ink, bg="none", width=W, label="contributions in the last year", merged=()):
     """One theme of the ticker as an SVG string."""
     num = f"{count:,}"
     L = number_layout(num, width)
@@ -108,10 +115,16 @@ def svg(count, marks, ink, bg="none", width=W, label="contributions in the last 
     if marks:
         # a short run spreads out to fill the width, so no mark shows twice at once
         gap = max(MARK_GAP, (width - sum(mw for mw, _ in boxes)) / len(marks))
+        merged = {o.lower() for o in merged}
+        if merged & {m.org.lower() for m in marks}:
+            s = BADGE / 24
+            defs.append(f'<g id="merged"><path fill="{ink}" transform="scale({s:.4f})" d="{MERGE_PATH}"/></g>')
         items, x = [], 0.0
         for i, (m, (mw, mh)) in enumerate(zip(marks, boxes)):
             defs.append(_mark_def(i, m, ink, mw, mh))
             items.append(f'<use href="#m{i}" x="{x:.2f}" y="{row_mid - mh / 2:.2f}"/>')
+            if m.org.lower() in merged:  # sits just off the logo's top right corner, no ground behind it
+                items.append(f'<use href="#merged" x="{x + mw + 4:.2f}" y="{row_mid - mh / 2 - BADGE * 0.55:.2f}"/>')
             x += mw + gap
         run, period = "".join(items), x
         copies = math.ceil(width / period) + 1
