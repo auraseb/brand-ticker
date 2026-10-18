@@ -56,11 +56,13 @@ def main(argv=None):
               "dark": (render.color(a.dark_ink), render.color(a.dark_bg, True))}
     count = fetch.contributions(a.user, a.token)
     found = fetch.orgs(a.user, a.mode, a.token, a.min_stars, split(a.exclude))
-    ranked = fetch.rank(found, a.token, split(a.first))
-    marks = gather(ranked, max(0, a.max_logos)) if a.max_logos > 0 else []
     merged = set()
     if a.badge_merged.lower() == "true":
         merged = set(found) if a.mode == "merged_prs" else set(fetch.orgs(a.user, "merged_prs", a.token, a.min_stars, split(a.exclude)))
+    # orgs that merged your code lead the strip (after any you pin), so their mark is always in view
+    first = split(a.first) + sorted(o for o in merged if o not in {f.lower() for f in split(a.first)})
+    ranked = fetch.rank(found, a.token, first)
+    marks = gather(ranked, max(0, a.max_logos)) if a.max_logos > 0 else []
 
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
