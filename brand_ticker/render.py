@@ -149,3 +149,88 @@ def svg(count, marks, ink, bg="none", width=W, label="contributions in the last 
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{H}" viewBox="0 0 {width} {H}" '
             f'role="img" aria-label="{title}">\n<title>{title}</title>\n<style>{css}</style>\n'
             f'<defs>{"".join(defs)}</defs>\n' + "\n".join(body) + "\n</svg>\n")
+
+
+def _badge_def(ink, size):
+    s = size / 24
+    return f'<g id="merged"><path fill="{ink}" transform="scale({s:.4f})" d="{MERGE_PATH}"/></g>'
+
+
+def _strip(marks, boxes, ink, merged, width, mid, side, gap_min, badge, prefix):
+    """One looping row of marks centred on y=mid; returns (defs, group, period)."""
+    gap = max(gap_min, (width - sum(mw for mw, _ in boxes)) / len(marks))
+    defs, items, x = [], [], 0.0
+    for i, (m, (mw, mh)) in enumerate(zip(marks, boxes)):
+        defs.append(_mark_def(f"{prefix}{i}", m, ink, mw, mh))
+        items.append(f'<use href="#m{prefix}{i}" x="{x:.2f}" y="{mid - mh / 2:.2f}"/>')
+        if m.org.lower() in merged:
+            items.append(f'<use href="#merged" x="{x + mw + 4:.2f}" y="{mid - mh / 2 - badge * 0.55:.2f}"/>')
+        x += mw + gap
+    run, period = "".join(items), x
+    copies = math.ceil(width / period) + 1
+    strip = "".join(f'<g transform="translate({k * period:.2f} 0)">{run}</g>' for k in range(-1, copies))
+    return defs, strip, period
+
+
+def marquee(marks, ink, bg="none", width=W, merged=(), side=84, rows=2, label="companies I ship fixes to"):
+    """No number: the marks are the headline, in counter scrolling rows (merged orgs lead)."""
+    merged = {o.lower() for o in merged}
+    badge = round(side * 0.3)
+    row_h = side * 1.55
+    H = round(row_h * rows + 8)
+    lanes = [marks[i::rows] for i in range(rows)]
+    defs, body, css = [], [], []
+    if merged & {m.org.lower() for m in marks}:
+        defs.append(_badge_def(ink, badge))
+    if bg != "none":
+        body.append(f'<rect width="{width}" height="{H}" fill="{bg}"/>')
+    defs.append(f'<linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{width}" y2="0">'
+                f'<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="{FADE / width:.4f}" stop-color="#fff"/>'
+                f'<stop offset="{1 - FADE / width:.4f}" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
+                f'</linearGradient><mask id="edge" maskUnits="userSpaceOnUse" x="0" y="0" width="{width}" height="{H}">'
+                f'<rect width="{width}" height="{H}" fill="url(#fade)"/></mask>')
+    groups = []
+    for r, lane in enumerate(lanes):
+        if not lane:
+            continue
+        boxes = [mark_box(m, side) for m in lane]
+        mid = row_h * r + row_h / 2 + 4
+        d, strip, period = _strip(lane, boxes, ink, merged, width, mid, side, side * 0.9, badge, f"r{r}")
+        defs += d
+        dur = period / SPEED
+        css.append(f"@keyframes k{r}{{from{{transform:translateX({0 if r % 2 == 0 else -period:.2f}px)}}"
+                   f"to{{transform:translateX({-period if r % 2 == 0 else 0:.2f}px)}}}}"
+                   f".k{r}{{animation:k{r} {dur:.1f}s linear infinite}}")
+        groups.append(f'<g transform="translate({FADE + 8} 0)"><g class="k{r}">{strip}</g></g>')
+    css.append("@media (prefers-reduced-motion:reduce){" + "".join(f".k{r}{{animation:none}}" for r in range(rows)) + "}")
+    body.append(f'<g mask="url(#edge)">{"".join(groups)}</g>')
+    title = escape(label)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{H}" viewBox="0 0 {width} {H}" '
+            f'role="img" aria-label="{title}">\n<title>{title}</title>\n<style>{"".join(css)}</style>\n'
+            f'<defs>{"".join(defs)}</defs>\n' + "\n".join(body) + "\n</svg>\n")
+
+
+def wall(marks, ink, bg="none", width=W, merged=(), cols=7, label="companies I ship fixes to"):
+    """No number: a still grid of every mark, merged orgs first with the merge glyph."""
+    merged = {o.lower() for o in merged}
+    cell = width / cols
+    side = cell * 0.5
+    badge = round(side * 0.32)
+    rows = math.ceil(len(marks) / cols)
+    H = round(cell * 0.8 * rows)
+    defs, body = [], []
+    if merged & {m.org.lower() for m in marks}:
+        defs.append(_badge_def(ink, badge))
+    if bg != "none":
+        body.append(f'<rect width="{width}" height="{H}" fill="{bg}"/>')
+    for i, m in enumerate(marks):
+        mw, mh = mark_box(m, side)
+        cx, cy = (i % cols + 0.5) * cell, (i // cols + 0.5) * cell * 0.8
+        defs.append(_mark_def(f"w{i}", m, ink, mw, mh))
+        body.append(f'<use href="#mw{i}" x="{cx - mw / 2:.2f}" y="{cy - mh / 2:.2f}"/>')
+        if m.org.lower() in merged:
+            body.append(f'<use href="#merged" x="{cx + mw / 2 + 4:.2f}" y="{cy - mh / 2 - badge * 0.55:.2f}"/>')
+    title = escape(label)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{H}" viewBox="0 0 {width} {H}" '
+            f'role="img" aria-label="{title}">\n<title>{title}</title>\n'
+            f'<defs>{"".join(defs)}</defs>\n' + "\n".join(body) + "\n</svg>\n")

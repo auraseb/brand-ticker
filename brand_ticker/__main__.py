@@ -23,6 +23,7 @@ def args(argv=None):
     p.add_argument("--dark-bg", default="none")
     p.add_argument("--out", default="ticker")
     p.add_argument("--badge-merged", default="true", help="mark logos of orgs where a PR was merged")
+    p.add_argument("--layout", default="count", choices=["count", "strip", "marquee", "wall"], help="count: the number over one strip; strip: the strip alone; marquee: two big counter scrolling rows; wall: a still grid")
     p.add_argument("--token", default=os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
     return p.parse_args(argv)
 
@@ -67,7 +68,15 @@ def main(argv=None):
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     for name, (ink, bg) in themes.items():
-        (out / f"{name}.svg").write_text(render.svg(count, marks, ink, bg, merged=merged))
+        if a.layout == "strip":
+            doc = render.marquee(marks, ink, bg, merged=merged, side=64, rows=1)
+        elif a.layout == "marquee":
+            doc = render.marquee(marks, ink, bg, merged=merged)
+        elif a.layout == "wall":
+            doc = render.wall(marks, ink, bg, merged=merged)
+        else:
+            doc = render.svg(count, marks, ink, bg, merged=merged)
+        (out / f"{name}.svg").write_text(doc)
 
     logins = [m.org for m in marks]
     print(f"{count:,} contributions, {len(marks)} marks: {', '.join(logins) or 'none'}")

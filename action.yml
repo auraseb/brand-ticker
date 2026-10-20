@@ -39,6 +39,9 @@ inputs:
   badge_merged:
     description: put github's merge glyph beside the logo of every org where one of your PRs was merged
     default: "true"
+  layout:
+    description: "count (the number over one strip of logos), strip (the logos alone), marquee (two big counter scrolling rows) or wall (a still grid)"
+    default: count
   output_dir:
     description: where light.svg and dark.svg go
     default: ticker
@@ -87,8 +90,9 @@ runs:
         BT_DARK_BG: ${{ inputs.dark_bg }}
         BT_OUT: ${{ inputs.output_dir }}
         BT_BADGE: ${{ inputs.badge_merged }}
+        BT_LAYOUT: ${{ inputs.layout }}
       run: |
-        "$RUNNER_TEMP/brand-ticker/bin/python" -m brand_ticker --badge-merged "$BT_BADGE" \
+        "$RUNNER_TEMP/brand-ticker/bin/python" -m brand_ticker --badge-merged "$BT_BADGE" --layout "$BT_LAYOUT" \
           --user "$BT_USER" --mode "$BT_MODE" --min-stars "$BT_MIN_STARS" \
           --exclude "$BT_EXCLUDE" --first "$BT_FIRST" --max-logos "$BT_MAX" \
           --light-ink "$BT_LIGHT_INK" --dark-ink "$BT_DARK_INK" \
