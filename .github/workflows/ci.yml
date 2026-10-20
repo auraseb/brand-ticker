@@ -25,7 +25,7 @@ jobs:
       - id: ticker
         uses: ./
         with:
-          user: auraseb
+          user: sebxt
           output_dir: out
           commit: "false"
       - name: check the output

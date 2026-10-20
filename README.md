@@ -3,8 +3,8 @@
 one number. every logo you have bothered.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/auraseb/auraseb/main/ticker/dark.svg">
-  <img alt="the live ticker on github.com/auraseb" src="https://raw.githubusercontent.com/auraseb/auraseb/main/ticker/light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sebxt/sebxt/main/ticker/dark.svg">
+  <img alt="the live ticker on github.com/sebxt" src="https://raw.githubusercontent.com/sebxt/sebxt/main/ticker/light.svg" width="100%">
 </picture>
 
 your contributions in the last year, set edge to edge. under it, a slow line of the marks of every org you have opened a pull request or an issue in. light and dark, pure svg, so it survives github's image proxy. it refreshes itself.
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: auraseb/brand-ticker@v1
+      - uses: sebxt/brand-ticker@v1
         with: { min_stars: 100 }
 ```
 
